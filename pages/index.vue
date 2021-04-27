@@ -1,59 +1,114 @@
 <template>
-  <div class="container" v-bind:class="{ lost: !isPlaying }">
+  <div class="container" v-bind:class="{ lost: state == State.LOST, bonusTime: isBonusTime}">
     <div>
-      <h1 v-bind:class="{hidden: isPlaying}" >{{taunt}}</h1>
+      <h1 v-bind:class="{hidden: state != State.LOST}" >{{taunt}}</h1>
       <div>
         <div id="typehere">
-          <span>qwerty</span>
-          <div id="input" v-bind:class="{ lineThrough: !isPlaying }">{{this.text}}<div v-if="isPlaying" id="caret"> </div></div>
+          <span>{{this.layout}}</span>
+          <div id="input" v-bind:class="{ lineThrough: state == State.LOST }">{{this.text}}<div v-if="state != State.LOST" id="caret"> </div></div>
         </div>
       </div>
       <div>
         <div id="stats">
-            <h1 v-bind:class="{hidden: !isPlaying}">Score : {{score}}</h1>
-            <h1 v-bind:class="{hidden: isPlaying}" >High score: {{highScore}}</h1>
-            <div v-bind:class="{hidden: isPlaying}" id="restart" v-on:click="resetGame()">Press any key to restart</div>
+            <h1 v-bind:class="{hidden: state == State.LOST}">Score : {{score}}</h1>
+            <h1 v-bind:class="{hidden: state != State.LOST}" >High score: {{highScore}}</h1>
+            <div v-bind:class="{hidden: state != State.LOST}" id="restart" v-on:click="resetGame()">Press any key to restart</div>
         </div>
       </div>
+    <life-bar :points=lifePoints> </life-bar>
     </div>
+    <h2 id="toggleLayout" v-on:click="toggleLayout()">Switch to {{this.layout == this.qwerty ? this.azerty : this.qwerty}}</h2>
   </div>
 </template>
 
 <script>
+import LifeBar from '../components/LifeBar.vue';
+
+const State = Object.freeze({"WAITING":1, "TYPING":2, "LOST":3})
+
+const startLifePoints = 15
+
 export default {
+  components: { LifeBar },
+
 
   data()
   {
     return {
+      State,
+      state : State.WAITING,
       text: "",
       index: 0,
+      lifePoints: 0,
       qwerty: "qwerty",
+      azerty: "azerty",
+      layout: "",
       taunt: "",
-      isPlaying: true,
       highScore: 0,
       score: 0,
-      phrases: ["You suck", "You are pathetic", "Get a job", "Go play fortnite you basic fuck", "Type like a man", "You should consider giving up"]
+      phrases: ["You suck", "You are pathetic", "Get a job", "Go play fortnite you basic fuck", "Type like a man", "You should consider giving up"],
+      pointsInterval : null,
+      bonusInterval : null,
+      isBonusTime : false
     }
   },
   methods : {
 
-    lost()
+    lose()
     {
+      this.lifePoints = 0
+      clearInterval(this.pointsInterval)
+      this.state = State.LOST
       this.taunt = this.getRandomTaunt()
       if (this.highScore < this.score)
         this.highScore = this.score
-      this.isPlaying = false
-      window.removeEventListener("keyup", this.listenKeys)
-      setTimeout(() => {
-        window.addEventListener("keyup", this.listenAnyKey)
-      }, 600)
+      this.switchListener(this.listenKeys, this.listenAnyKey)
+    },
+    start()
+    {
+      this.state = State.TYPING
+      this.switchListener(this.listenFirstKey, this.listenKeys, 0)
+      this.pointsInterval = setInterval(() => {
+        if (this.lifePoints > 0)
+          this.lifePoints -= 1
+        else
+        {
+          this.lose()
+          clearInterval(this.pointsInterval)
+        }
+      }, 100)
+    },
+    bonusTime()
+    {
+      this.isBonusTime = true
+      this.bonusInterval = setInterval(() => {
+        if (this.lifePoints < 100)
+        {
+          this.isBonusTime = false
+          clearInterval(this.bonusInterval)
+          this.bonusInterval = null
+        }
+      }, 500)
     },
     resetGame()
     {
-      this.isPlaying = true
+      this.state = State.WAITING
       this.resetLine()
-      this.addListener()
       this.score = 0;
+      this.lifePoints = startLifePoints;
+      this.switchListener(this.listenAnyKey, this.listenFirstKey, 200)
+    },
+    toggleLayout()
+    {
+      if (this.state == State.LOST)
+        this.resetGame()
+      if (this.state == State.WAITING)
+      {
+        if (this.layout == this.qwerty)
+          this.layout = this.azerty
+        else
+          this.layout = this.qwerty
+      }
     },
     resetLine()
     {
@@ -66,45 +121,71 @@ export default {
     },
     listenAnyKey(e)
     {
-        this.resetGame()
+      this.resetGame()
+    },
+    listenFirstKey(e)
+    {
+      var inp = String.fromCharCode(e.keyCode);
+      if (/[a-zA-Z0-9-_ ]/.test(inp))
+      {
+        this.start()
+        this.listenKeys(e)
+      }
     },
     listenKeys(e)
     {
-      console.log("ok")
         var inp = String.fromCharCode(e.keyCode);
         if (/[a-zA-Z0-9-_ ]/.test(inp))
         {
           this.text += e.key
-          if (e.key != this.qwerty[this.index])
+          if (e.key != this.layout[this.index])
           {
-            this.isPlaying = false
-            this.lost()
+            this.lose()
           }
           else
           {
             this.index++
-            if (this.index == this.qwerty.length)
+            if (this.index == this.layout.length)
             {
               this.resetLine()
               this.score++
+              this.lifePoints += 4.5
+              if (this.lifePoints > 102)
+              {
+                if (this.isBonusTime == false)
+                {
+                  this.bonusTime()
+                }
+                this.lifePoints = 102
+              }
             }
           }
         }
     },
-    addListener()
+    switchListener(l1, l2, timeout = 400)
     {
-      window.removeEventListener("keyup", this.listenAnyKey)
-      setTimeout(() => {
-        window.addEventListener("keyup", this.listenKeys)
-      }, 300)
-
+      window.removeEventListener("keyup", l1)
+      if (timeout > 0)
+      {
+        setTimeout(() => {
+          window.addEventListener("keyup", l2)
+        }, timeout)
+      }
+      else
+          window.addEventListener("keyup", l2)
     }
   },
   mounted()
   {
     setTimeout(this.addListener, 500)
     this.taunt = "Type here"
-  }
+    this.layout = this.qwerty
+    this.state = State.WAITING
+    this.lifePoints = startLifePoints
+    setTimeout(() => {
+        window.addEventListener("keyup", this.listenFirstKey)
+    }, 500)
+ }
 };
 </script>
 
@@ -129,6 +210,23 @@ export default {
   background-color: #ba1e1e;
 }
 
+.container.bonusTime
+{
+  animation-name: bonusBlink;
+	animation-duration: 0.5s;
+	animation-iteration-count: infinite;
+	animation-direction: alternate;
+}
+
+@keyframes bonusBlink {
+  0%, 100% {
+      background-color: #1e5cba;
+  }
+  50% {
+      background-color: #4b00a2;
+  }
+}
+
 .container > div {
   height: 50%;
   display: flex;
@@ -147,6 +245,7 @@ export default {
   /* width: 30vw; */
   /* height: 15vh; */
   font-family:Arial, Helvetica, sans-serif;
+  color: white;
   font-size: 8em;
   font-weight: bold;
   position: relative;
@@ -229,6 +328,18 @@ h1.hidden
   border: 6px solid white;
   padding: 15px;
   cursor: pointer;
+}
+
+#toggleLayout {
+  position: absolute;
+  color: white;
+  bottom: 15px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+#toggleLayout:hover {
+  text-shadow: white 0 0 7px;
 }
 
 </style>
