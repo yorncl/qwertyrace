@@ -1,4 +1,4 @@
-# qwertyrun
+# qwertyrace
 
 Just a simple browser game where you have to type qwerty over and over...
 

@@ -2,11 +2,11 @@ export default {
   // Target: https://go.nuxtjs.dev/config-target
   target: 'static',
   router : {
-    base: '/qwertyrun/'
+    base: '/qwertyrace/'
   },
     // Global page headers: https://go.nuxtjs.dev/config-head
   head: {
-    title: 'qwertyrun',
+    title: 'qwertyrace',
     htmlAttrs: {
       lang: 'en'
     },
