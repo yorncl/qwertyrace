@@ -46,7 +46,17 @@ export default {
       taunt: "",
       highScore: 0,
       score: 0,
-      phrases: ["You suck", "You are pathetic", "Get a job", "Go play fortnite you basic fuck", "Type like a man", "You should consider giving up"],
+      phrases: [
+        "Wow, that was underwhelming.",
+        "I expected more from you.",
+        "You call that effort?",
+        "Next time, try not to embarrass yourself.",
+        "Looks like you need to put in some extra practice.",
+        "You're not exactly setting the world on fire here.",
+        "Maybe try harder next time.",
+        "You're not exactly living up to your potential.",
+        "You can do better than that... or can you?"
+      ],
       pointsInterval : null,
       bonusInterval : null,
       isBonusTime : false
