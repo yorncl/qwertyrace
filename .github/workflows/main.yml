@@ -1,4 +1,4 @@
-name: Build and Deploy
+me: Build and Deploy
 
 on:
   push:
@@ -15,11 +15,11 @@ jobs:
 
     - name: Install dependencies
       run: |
-        npm ci
+        yarn install
 
     - name: Build
       run: |
-        npm run generate
+        yarn generate
 
     - name: Deploy
       uses: JamesIves/github-pages-deploy-action@releases/v3
